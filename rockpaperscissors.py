@@ -5,9 +5,9 @@ import threading
 
 # Settings
 players = 999
-generations = 100 
+generations = 1000 
 delay = 100  # Milliseconds
-mutation_rate = 0.01
+mutation_rate = 0.0001
 
 # Initial distribution
 percentage_distribution = {"rock": 33, "paper": 33, "scissors": 33}
@@ -111,7 +111,7 @@ def graphics():
     pgm.init()
     screen = pgm.display.set_mode((1280, 720))
     clock = pgm.time.Clock()
-    font = pgm.font.Font(None, 74)
+    font = pgm.font.Font(None, 36)  # Reduced font size for better fit
     running = True
 
     while running:
@@ -130,14 +130,41 @@ def graphics():
             scissors_percentage = (current_distribution["scissors"] / total_players) * 100
 
         # Render text
-        rock_text = font.render(f"Rock: {rock_percentage:.2f}%", True, (255, 0, 0))
-        paper_text = font.render(f"Paper: {paper_percentage:.2f}%", True, (0, 255, 0))
-        scissors_text = font.render(f"Scissors: {scissors_percentage:.2f}%", True, (0, 0, 255))
+        rock_text = font.render("Rock", True, (255, 0, 0))
+        paper_text = font.render("Paper", True, (0, 255, 0))
+        scissors_text = font.render("Scissors", True, (0, 0, 255))
 
-        # Display text
-        screen.blit(rock_text, (50, 50))
-        screen.blit(paper_text, (50, 150))
-        screen.blit(scissors_text, (50, 250))
+        rock_percent = font.render(f"{rock_percentage:.2f}%", True, (255, 0, 0))
+        paper_percent = font.render(f"{paper_percentage:.2f}%", True, (0, 255, 0))
+        scissors_percent = font.render(f"{scissors_percentage:.2f}%", True, (0, 0, 255))
+
+        # Calculate bar heights and positions
+        max_bar_height = 500
+        bar_width = 50
+        bar_spacing = 100
+        bar_x_start = 100
+        bar_y = 500
+
+        # Rock bar
+        rock_height = (rock_percentage / 100) * max_bar_height
+        rock_bar = pgm.Rect(bar_x_start, bar_y - rock_height, bar_width, rock_height)
+        pgm.draw.rect(screen, (255, 0, 0), rock_bar)
+        screen.blit(rock_text, (bar_x_start, bar_y + 10))
+        screen.blit(rock_percent, (bar_x_start, bar_y + 40))
+
+        # Paper bar
+        paper_height = (paper_percentage / 100) * max_bar_height
+        paper_bar = pgm.Rect(bar_x_start + bar_spacing, bar_y - paper_height, bar_width, paper_height)
+        pgm.draw.rect(screen, (0, 255, 0), paper_bar)
+        screen.blit(paper_text, (bar_x_start + bar_spacing, bar_y + 10))
+        screen.blit(paper_percent, (bar_x_start + bar_spacing, bar_y + 40))
+
+        # Scissors bar
+        scissors_height = (scissors_percentage / 100) * max_bar_height
+        scissors_bar = pgm.Rect(bar_x_start + 2 * bar_spacing, bar_y - scissors_height, bar_width, scissors_height)
+        pgm.draw.rect(screen, (0, 0, 255), scissors_bar)
+        screen.blit(scissors_text, (bar_x_start + 2 * bar_spacing, bar_y + 10))
+        screen.blit(scissors_percent, (bar_x_start + 2 * bar_spacing, bar_y + 40))
 
         pgm.display.flip()
 
