@@ -1,21 +1,16 @@
-# Imports
 import random
 import time
 import pygame as pgm
+import threading
+
 # Settings
 players = 999
 generations = 100 
-delay = 100 # Milliseconds
+delay = 100  # Milliseconds
 mutation_rate = 0.01
 
 # Initial distribution
 percentage_distribution = {"rock": 33, "paper": 33, "scissors": 33}
-
-# pgm setup
-pgm.init()
-screen = pgm.display.set_mode((1280, 720))
-clock = pgm.time.Clock()
-running = True
 
 # Interpret the percentage distribution into actual values
 total_percentage = sum(percentage_distribution.values())
@@ -31,6 +26,10 @@ for strat in percentage_distribution:
 strategies = list(distribution.keys())
 for i in range(players_remaining):
     distribution[strategies[i % len(strategies)]] += 1
+
+# Shared data structure for synchronization
+distribution_lock = threading.Lock()
+current_distribution = distribution.copy()
 
 def display(distribution):
     print(f"Total players: {sum(distribution.values())}")
@@ -62,6 +61,7 @@ def mutate(strategy):
     return random.choice(strategies)
 
 def simulate_generations(distribution, generations, delay):
+    global current_distribution
     for generation in range(generations):
         new_distribution = {"rock": 0, "paper": 0, "scissors": 0}
         total_players = sum(distribution.values())
@@ -98,9 +98,59 @@ def simulate_generations(distribution, generations, delay):
             new_distribution[child] += 1
         
         distribution = new_distribution
+
+        with distribution_lock:
+            current_distribution = distribution.copy()
+
         print(f"Generation {generation + 1}:")
         display(distribution)
-        time.sleep(delay/1000)
+        time.sleep(delay / 1000)
+
+# Pygame setup
+def graphics():
+    pgm.init()
+    screen = pgm.display.set_mode((1280, 720))
+    clock = pgm.time.Clock()
+    font = pgm.font.Font(None, 74)
+    running = True
+
+    while running:
+        # Poll for events
+        for event in pgm.event.get():
+            if event.type == pgm.QUIT:
+                running = False
+
+        # Fill the screen with a color to wipe away anything from the last frame
+        screen.fill((0, 0, 0))
+
+        with distribution_lock:
+            total_players = sum(current_distribution.values())
+            rock_percentage = (current_distribution["rock"] / total_players) * 100
+            paper_percentage = (current_distribution["paper"] / total_players) * 100
+            scissors_percentage = (current_distribution["scissors"] / total_players) * 100
+
+        # Render text
+        rock_text = font.render(f"Rock: {rock_percentage:.2f}%", True, (255, 0, 0))
+        paper_text = font.render(f"Paper: {paper_percentage:.2f}%", True, (0, 255, 0))
+        scissors_text = font.render(f"Scissors: {scissors_percentage:.2f}%", True, (0, 0, 255))
+
+        # Display text
+        screen.blit(rock_text, (50, 50))
+        screen.blit(paper_text, (50, 150))
+        screen.blit(scissors_text, (50, 250))
+
+        pgm.display.flip()
+
+        clock.tick(60)  # Limits FPS to 60
+
+    pgm.quit()
 
 # Run the simulation
-simulate_generations(distribution, generations, delay)
+simulation_thread = threading.Thread(target=simulate_generations, args=(distribution, generations, delay))
+graphics_thread = threading.Thread(target=graphics)
+
+simulation_thread.start()
+graphics_thread.start()
+
+simulation_thread.join()
+graphics_thread.join()
